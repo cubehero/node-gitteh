@@ -68,7 +68,7 @@ Tag::Tag(git_tag *tag) {
 
 Tag::~Tag() {
 	repository_->lockRepository();
-	git_tag_close(tag_);
+	git_tag_free(tag_);
 	repository_->unlockRepository();
 }
 
@@ -143,16 +143,15 @@ Handle<Value> Tag::SaveObject(Handle<Object> tagObject, Repository *repo,
 		THROW_ERROR("Tag requires a message.");
 	}
 
-	git_object* targetObj;
+	git_object * targetObj;
 	git_oid targetOid;
-	git_oid_mkstr(&targetOid, *targetId);
+	git_oid_fromstr(&targetOid, *targetId);
 	result = git_object_lookup(&targetObj, repo->repo_, &targetOid, GIT_OBJ_ANY);
 	if(result != GIT_SUCCESS) {
 		THROW_GIT_ERROR("Couldn't find target object.", result);
 	}
 
 	git_otype targetType = git_object_type(targetObj);
-	git_object_close(targetObj);
 
 	git_signature *tagger = GetSignatureFromProperty(tagObject, tagger_symbol);
 	if(tagger == NULL) {
@@ -193,11 +192,12 @@ Handle<Value> Tag::SaveObject(Handle<Object> tagObject, Repository *repo,
 		repo->lockRepository();
 
 		git_oid newId;
-		result = git_tag_create(&newId, repo->repo_, *name, &targetOid,
-				targetType, tagger, *message);
+                const git_object * cTarget = targetObj;
+		result = git_tag_create(&newId, repo->repo_, *name, cTarget, tagger, *message, 0);
 		repo->unlockRepository();
 
 		git_signature_free(tagger);
+                git_object_free(targetObj);
 
 		if(result != GIT_SUCCESS) {
 			THROW_GIT_ERROR("Couldn't save tag.", result);
@@ -243,9 +243,14 @@ void Tag::EIO_Save(eio_req *req) {
 
 	git_oid newId;
 	reqData->repo->lockRepository();
+        
+        git_object * targetObj;
+	int result = git_object_lookup(&targetObj, reqData->repo->repo_, &reqData->targetId, GIT_OBJ_ANY);
+        
+        const git_object * cTarget = targetObj;
 	reqData->error = git_tag_create(&newId, reqData->repo->repo_, reqData->name->c_str(),
-			&reqData->targetId, reqData->targetType, reqData->tagger,
-			reqData->message->c_str());
+			cTarget, reqData->tagger,
+			reqData->message->c_str(), 0);
 	reqData->repo->unlockRepository();
 
 	if(reqData->error == GIT_SUCCESS) {

@@ -54,7 +54,7 @@ var createTreeTestContext = function(topic, treeFixture) {
 			},
 			
 			"has correct number of entries": function(tree) {
-				assert.length(tree.entries, entriesFixture.length);
+				assert.equal(tree.entries.length, entriesFixture.length);
 			}
 		};
 		

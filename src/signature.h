@@ -30,8 +30,8 @@ static inline git_signature *GetSignatureFromProperty(Handle<Object> object,
 	if(!sigEmail.length())
 		return NULL;
 
-	git_signature *sig = git_signature_new(*sigName,
-			*sigEmail, sigTime, offset);
+	git_signature *sig;
+	git_signature_new(&sig,*sigName,*sigEmail, sigTime, offset);
 
 	return sig;
 }

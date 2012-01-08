@@ -1,7 +1,7 @@
 // This stress test will open a repository and traverse all commits, doing this
 // many times simultaneously. This will ensure there's no deadlocks or other fun
 // threading issues.
-var gitteh = require("../../build/default/gitteh"),
+var gitteh = require("../../build/Release/gitteh"),
 	async = require("async"),
 	path = require("path");
 

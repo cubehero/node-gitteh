@@ -159,7 +159,7 @@ Handle<Value> Reference::Rename(const Arguments& args) {
 	}
 	else {
 		ref->repository_->lockRepository();
-		int result = git_reference_rename(ref->ref_, *newNameArg);
+		int result = git_reference_rename(ref->ref_, *newNameArg, 0);
 		ref->repository_->unlockRepository();
 
 		ref->unlock();
@@ -180,7 +180,7 @@ void Reference::EIO_Rename(eio_req *req) {
 
 	IF_ASYNC_CHECK_ISNT_DELETED()
 		reqData->ref->repository_->lockRepository();
-		reqData->error = git_reference_rename(reqData->ref->ref_, reqData->name->c_str());
+		reqData->error = git_reference_rename(reqData->ref->ref_, reqData->name->c_str(), 0);
 		reqData->ref->repository_->unlockRepository();
 		reqData->ref->unlock();
 	}
@@ -451,7 +451,7 @@ void Reference::EIO_SetTarget(eio_req *req) {
 		reqData->ref->repository_->lockRepository();
 		if(reqData->ref->type_ == GIT_REF_OID) {
 			git_oid id;
-			reqData->error = git_oid_mkstr(&id, reqData->target->c_str());
+			reqData->error = git_oid_fromstr(&id, reqData->target->c_str());
 
 			if(reqData->error == GIT_SUCCESS) {
 				reqData->error = git_reference_set_oid(reqData->ref->ref_, &id);

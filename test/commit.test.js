@@ -85,7 +85,7 @@ var createCommitTests = function(topic, commitFixture) {
 	
 	if(commitFixture.parents) {
 		context["has correct number of parents"] = function(commit) {
-			assert.length(commit.parents, commitFixture.parents.length);
+			assert.equal(commit.parents.length, commitFixture.parents.length);
 		};
 		
 		context["parents are correct"] = function(commit) {

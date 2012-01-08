@@ -1,4 +1,4 @@
-var gitteh = require("../../build/default/gitteh"),
+var gitteh = require("../../build/Release/gitteh"),
 	path = require("path"),
 	async = require("async"),
 	fs = require("fs");

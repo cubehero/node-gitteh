@@ -105,8 +105,10 @@ Handle<Value> Commit::New(const Arguments& args) {
 Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 		Handle<Value> callback, bool isNew) {
 	int result, parentCount, i;
+	git_tree * tree;
 	git_oid treeId;
-	git_oid *parentIds;
+        git_oid * parentIds;
+	git_oid * parentCommits;
 
 	HandleScope scope;
 
@@ -136,11 +138,13 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 		THROW_ERROR("Tree is required.");
 	}
 
-	treeId;
-	result = git_oid_mkstr(&treeId, *treeIdStr);
+	result = git_oid_fromstr(&treeId, *treeIdStr);
 	if(result != GIT_SUCCESS) {
 		THROW_ERROR("Tree ID is invalid.");
 	}
+	
+        const git_oid cTreeId = treeId;
+	git_tree_lookup(&tree, repo->repo_ , &cTreeId);
 
 	Handle<Array> parents;
 	if(commitObject->Has(parents_symbol)) {
@@ -164,10 +168,10 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 	}
 
 	parentCount = parents->Length();
-	parentIds = new git_oid[parentCount];
+        parentIds = new git_oid[parentCount];
 	for(i = 0; i < parentCount; i++) {
-		result = git_oid_mkstr(&parentIds[i], *String::Utf8Value(parents->Get(i)));
-		if(result != GIT_SUCCESS) {
+		result = git_oid_fromstr(&parentIds[i], *String::Utf8Value(parents->Get(i)));
+                if(result != GIT_SUCCESS) {
 			delete [] parentIds;
 			THROW_ERROR("Parent id is invalid.");
 		}
@@ -218,18 +222,24 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 	else {
 		git_oid newId;
 
+                parentCommits = new git_oid[parentCount];
 		const git_oid **parentIdsPtr;
 		parentIdsPtr = new const git_oid*[parentCount];
 		for(i = 0; i < parentCount; i++) {
-			parentIdsPtr[i] = &parentIds[i];
+                        parentIdsPtr[i] = &parentIds[i];
+                        const git_oid parentId = parentIds[i];
+                        git_commit_lookup((git_commit**)&parentCommits[i], repo->repo_, &parentId);
 		}
-		result = git_commit_create(&newId, repo->repo_, NULL, author, committer,
-				*message, &treeId, parentCount, parentIdsPtr);
+                
+                const git_tree * cTree = tree;
+                const git_commit * cPCommits = (git_commit*)parentCommits;
+		result = git_commit_create(&newId, repo->repo_, NULL, author, committer, NULL, *message, cTree, parentCount, &cPCommits);
 
 		git_signature_free(author);
 		git_signature_free(committer);
 		delete [] parentIdsPtr;
 		delete [] parentIds;
+                delete [] parentCommits;
 
 		if(result != GIT_SUCCESS) {
 			THROW_GIT_ERROR("Couldn't save commit.", result);
@@ -270,17 +280,28 @@ Handle<Value> Commit::Save(const Arguments& args) {
 void Commit::EIO_Save(eio_req *req) {
 	save_commit_request *reqData = static_cast<save_commit_request*>(req->data);
 
+        git_oid * parentCommits;
+        parentCommits = new git_oid[reqData->parentCount];
 	const git_oid **parentIdsPtr;
 	parentIdsPtr = new const git_oid*[reqData->parentCount];
 	for(int i = 0; i < reqData->parentCount; i++) {
 		parentIdsPtr[i] = &reqData->parentIds[i];
+                const git_oid * parentId = &reqData->parentIds[i];
+                git_commit_lookup((git_commit**)&parentCommits[i], reqData->repo->repo_, parentId);
 	}
-
+        const git_commit * cPCommits = (git_commit*)parentCommits;
+        
 	git_oid newId;
 	reqData->repo->lockRepository();
+        
+        const git_oid * cTreeId = &reqData->treeId;
+        git_tree * tree;
+	git_tree_lookup(&tree, reqData->repo->repo_ , cTreeId);
+        const git_tree * cTree = tree;
+        
 	reqData->error = git_commit_create(&newId, reqData->repo->repo_, NULL,
-			reqData->author, reqData->committer, reqData->message->c_str(),
-			&reqData->treeId, reqData->parentCount, parentIdsPtr);
+			reqData->author, reqData->committer, NULL, reqData->message->c_str(),
+			cTree, reqData->parentCount, &cPCommits);
 	reqData->repo->unlockRepository();
 
 	if(reqData->error == GIT_SUCCESS) {
@@ -319,7 +340,7 @@ int Commit::EIO_AfterSave(eio_req *req) {
 		}
 		else {
 			git_oid oid;
-			git_oid_mkstr(&oid, reqData->id);
+			git_oid_fromstr(&oid, reqData->id);
 			reqData->commit->updateCachedRef(&oid);
 
 			reqData->commit->handle_->ForceSet(id_symbol, String::New(reqData->id, 40),
@@ -412,7 +433,7 @@ Commit::Commit(git_commit *commit) {
 
 Commit::~Commit() {
 	repository_->lockRepository();
-	git_commit_close(commit_);
+	git_commit_free(commit_);
 	repository_->unlockRepository();
 }
 
@@ -421,7 +442,7 @@ void Commit::updateCachedRef(const git_oid *newId) {
 	git_commit *newCommit;
 	git_commit_lookup(&newCommit, repository_->repo_, newId);
 	repository_->commitCache_->updateCacheRef(commit_, newCommit);
-	git_commit_close(commit_);
+	git_commit_free(commit_);
 	commit_ = newCommit;
 	repository_->unlockRepository();
 }

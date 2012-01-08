@@ -391,8 +391,8 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 				_workTree = *workTree;
 			}
 
-			int result = git_repository_open2(&repo, _gitDir, _objDir, _indexFile,
-					_workTree);
+			//int result = git_repository_open2(&repo, _gitDir, _objDir, _indexFile, _workTree);
+                        int result = git_repository_open(&repo, _gitDir);
 			if(result != GIT_SUCCESS) {
 				THROW_GIT_ERROR("Couldn't open repository.", result);
 			}
@@ -491,8 +491,8 @@ void Repository::EIO_OpenRepository2(eio_req *req) {
 		_workTree = reqData->workTree->c_str();
 	}
 
-	reqData->error = git_repository_open2(&reqData->repo, _gitDir, _objDir,
-			_indexFile, _workTree);
+	//reqData->error = git_repository_open2(&reqData->repo, _gitDir, _objDir, _indexFile, _workTree);
+        reqData->error = git_repository_open(&reqData->repo, _gitDir);
 
 	if(reqData->objectDir) {
 		delete reqData->objectDir;
@@ -623,7 +623,8 @@ Handle<Value> Repository::New(const Arguments& args) {
 
 	repo->repo_ = static_cast<git_repository*>(repoArg->Value());
 	repo->path_ = *pathArg;
-	repo->odb_ = git_repository_database(repo->repo_);
+	//repo->odb_ = git_repository_database(repo->repo_);
+        git_repository_odb(&repo->odb_, repo->repo_);
 
 	args.This()->Set(path_symbol, String::New(repo->path_),
 			(PropertyAttribute)(ReadOnly | DontDelete));
@@ -1186,7 +1187,7 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 		repo->lockRefs();
 
 		git_reference *ref;
-		int res = git_reference_create_symbolic(&ref, repo->repo_, *nameArg, *targetArg);
+		int res = git_reference_create_symbolic(&ref, repo->repo_, *nameArg, *targetArg, 0);
 
 		if(res != GIT_SUCCESS) {
 			repo->unlockRefs();
@@ -1207,7 +1208,7 @@ void Repository::EIO_CreateSymbolicRef(eio_req *req) {
 
 	reqData->repo->lockRepository();
 	reqData->error = git_reference_create_symbolic(&ref, reqData->repo->repo_,
-			reqData->name->c_str(), reqData->target->c_str());
+			reqData->name->c_str(), reqData->target->c_str(), 0);
 	reqData->repo->unlockRepository();
 
 	if(reqData->error == GIT_SUCCESS) {
@@ -1252,7 +1253,7 @@ Handle<Value> Repository::CreateOidRef(const Arguments& args) {
 
 		git_reference *ref;
 		repo->lockRepository();
-		int res = git_reference_create_oid(&ref, repo->repo_, *nameArg, &oidArg);
+		int res = git_reference_create_oid(&ref, repo->repo_, *nameArg, &oidArg, 0);
 		repo->unlockRepository();
 
 		if(res != GIT_SUCCESS) {
@@ -1273,11 +1274,11 @@ void Repository::EIO_CreateOidRef(eio_req *req) {
 
 	// Ignoring the result of this, as we know it's definitely a good oid.
 	git_oid oid;
-	git_oid_mkstr(&oid, reqData->target->c_str());
+	git_oid_fromstr(&oid, reqData->target->c_str());
 
 	git_reference *ref;
 	reqData->error = git_reference_create_oid(&ref, reqData->repo->repo_,
-			reqData->name->c_str(), &oid);
+			reqData->name->c_str(), &oid, 0);
 
 	reqData->repo->unlockRepository();
 

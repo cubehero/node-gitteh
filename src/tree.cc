@@ -150,7 +150,7 @@ Tree::Tree(git_tree *tree) {
 
 Tree::~Tree() {
 	repository_->lockRepository();
-	git_tree_close(tree_);
+	git_tree_free(tree_);
 	repository_->unlockRepository();
 }
 
@@ -192,7 +192,7 @@ int Tree::doInit() {
 
 	data->entries = new tree_entry_data*[data->entryCount];
 	for(int i = 0; i < data->entryCount; i++) {
-		git_tree_entry *gitEntry = git_tree_entry_byindex(tree_, i);
+		const git_tree_entry *gitEntry = git_tree_entry_byindex(tree_, i);
 		tree_entry_data *entryData = new tree_entry_data;
 		git_oid_fmt(entryData->id, git_tree_entry_id(gitEntry));
 		entryData->name = new std::string(git_tree_entry_name(gitEntry));

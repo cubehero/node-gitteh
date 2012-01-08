@@ -34,7 +34,7 @@ Blob::Blob(git_blob *blob) {
 
 Blob::~Blob() {
 	repository_->lockRepository();
-	git_object_close((git_object*)blob_);
+	git_object_free((git_object*)blob_);
 	repository_->unlockRepository();
 }
 

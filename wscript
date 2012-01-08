@@ -78,6 +78,8 @@ def build(ctx):
 		build_libgit2(ctx)
 
 	obj = ctx.new_task_gen('cxx', 'shlib', 'node_addon')
+	obj.cxxflags = ["--verbose"]
+	
 	obj.target = 'gitteh'
 	obj.source = 'src/gitteh.cc src/commit.cc src/tree.cc src/repository.cc src/index.cc src/index_entry.cc src/tag.cc src/rev_walker.cc src/ref.cc src/blob.cc' 
 	obj.uselib = 'GIT2'

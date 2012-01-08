@@ -436,7 +436,7 @@ void *Index::loadInitData() {
 	repository_->unlockRepository();
 	if(initError_ == GIT_EBAREINDEX) {
 		repository_->lockRepository();
-		initError_ = git_index_open_bare(&index_, repository_->path_);
+		initError_ = git_index_open(&index_, repository_->path_);
 		repository_->unlockRepository();
 	}
 
