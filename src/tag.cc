@@ -246,7 +246,6 @@ void Tag::EIO_Save(eio_req *req) {
 	git_oid newId;
 	reqData->repo->lockRepository();
         
-        const git_object * cTarget = targetObj;
 	reqData->error = git_tag_create(&newId, reqData->repo->repo_, reqData->name->c_str(),
 			targetObj, reqData->tagger,
 			reqData->message->c_str(), 0);
