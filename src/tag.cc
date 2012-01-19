@@ -192,12 +192,12 @@ Handle<Value> Tag::SaveObject(Handle<Object> tagObject, Repository *repo,
 		repo->lockRepository();
 
 		git_oid newId;
-                const git_object * cTarget = targetObj;
-		result = git_tag_create(&newId, repo->repo_, *name, cTarget, tagger, *message, 0);
+		result = git_tag_create(&newId, repo->repo_, *name, targetObj,
+                        tagger, *message, 0);
+                git_object_free(targetObj);
 		repo->unlockRepository();
 
 		git_signature_free(tagger);
-                git_object_free(targetObj);
 
 		if(result != GIT_SUCCESS) {
 			THROW_GIT_ERROR("Couldn't save tag.", result);
@@ -241,16 +241,16 @@ Handle<Value> Tag::Save(const Arguments& args) {
 void Tag::EIO_Save(eio_req *req) {
 	save_request *reqData = static_cast<save_request*>(req->data);
 
+        git_object * targetObj;
+        int result = git_object_lookup(&targetObj, reqData->repo->repo_, &reqData->targetId, GIT_OBJ_ANY);
 	git_oid newId;
 	reqData->repo->lockRepository();
         
-        git_object * targetObj;
-	int result = git_object_lookup(&targetObj, reqData->repo->repo_, &reqData->targetId, GIT_OBJ_ANY);
-        
         const git_object * cTarget = targetObj;
 	reqData->error = git_tag_create(&newId, reqData->repo->repo_, reqData->name->c_str(),
-			cTarget, reqData->tagger,
+			targetObj, reqData->tagger,
 			reqData->message->c_str(), 0);
+        git_object_free(targetObj);
 	reqData->repo->unlockRepository();
 
 	if(reqData->error == GIT_SUCCESS) {
