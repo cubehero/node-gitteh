@@ -2,6 +2,7 @@
 
 ## libgit2 Support
 As of Feb 2012, gitteh now supports the latest version of libgit2 (0.16). This comes with some caveats however!
+
 * You'll have to install from source because I can't get my changes pulled into the official repository, and therefore into the NPM.
 * You'll have to install libgit2 from source FIRST, before you install gitteh.
 * The test/ref.test.js test fails, so it's likely that ref's are borked.
