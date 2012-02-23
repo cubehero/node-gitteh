@@ -1,5 +1,11 @@
 # Gitteh
 
+## libgit2 Support
+As of Feb 2012, gitteh now supports the latest version of libgit2 (0.16). This comes with some caveats however!
+* You'll have to install from source because I can't get my changes pulled into the official repository, and therefore into the NPM.
+* You'll have to install libgit2 from source FIRST, before you install gitteh.
+* The test/ref.test.js test fails, so it's likely that ref's are borked.
+
 ## What?
 
 Node bindings to the excellent [libgit2](http://libgit2.github.com) C library. The bindings cover *most* of the libgit2 API, however I took some liberties. For example...
@@ -19,17 +25,20 @@ Or you could, you know, manually execute `git` CLI commands and parse stdout. Ha
 
 ## How?
 
-Installation can be done via npm.
+You must install using the npm, but pointing at a local checkout of the git repo.
+Install libgit2 first:
 
-	npm install gitteh
-	
-Currently, installing Gitteh via NPM will mean that Gitteh will compile it's own
-bundled version of libgit2, even if it's already installed on your system. I've
-done this because libgit2 is releasing quite rapidly and each release is breaking
-functionality. So while libgit2 is in alpha state, I will be forcing a specific
-version of libgit2 with each release of Gitteh.
+    $ git clone git://github.com/libgit2/libgit2.git
+    $ cd libgit2
+    $ mkdir build && cd build
+    $ cmake ..
+    $ make
+    $ make install
 
-The current version of Gitteh requires libgit2 v0.11.0.
+Make sure the lib files are somewhere that Node knows about.
+Run npm from the directory you want to install gitteh to, and point it at the checkout.
+
+The current version of Gitteh requires libgit2 v0.16.0.
 
 [Documentation can be found here.](http://libgit2.github.com/node-gitteh/docs/index.html). You should also check out the examples in the examples/ dir in the repo.
 
