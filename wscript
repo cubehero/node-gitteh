@@ -25,15 +25,17 @@ def configure_libgit2(ctx):
   
   if o.use_bundled_libgit2 or not ctx.check(lib = "git2", uselib_store = "GIT2"):
     # Checkout libgit2 submodule if it isn't already.
-    if exists(".git"): 
-      if not exists("vendor/libgit2") or not os.listdir("vendor/libgit2"):
-        print "Checking out libgit2 submodule."
-        if Popen("mkdir -p vendor", shell = True).wait() != 0:
-          ctx.fatal("Couldn't make vendor directory")
-        if Popen("{0} clone git://github.com/libgit2/libgit2.git -b v0.16.0".format(ctx.env.GIT), cwd = "vendor", shell = True).wait() != 0:
-          ctx.fatal("Couldn't initialize libgit2 submodule.")
-        if Popen("git checkout v0.16.0", cwd = "vendor/libgit2", shell = True).wait() != 0:
-          ctx.fatal("Couldn't check out compatible version of libgit2")
+    # if exists(".git"):
+      # if not exists("vendor/libgit2") or not os.listdir("vendor/libgit2"):
+#    print "Checking out libgit2 submodule."
+#    if Popen("{0} submodule update --init".format(ctx.env.GIT), shell = True).wait() != 0:
+#      ctx.fatal("Couldn't initialize libgit2 submodule")
+    if Popen("mkdir -p vendor", shell = True).wait() != 0:
+      ctx.fatal("Couldn't make vendor directory")
+    if Popen("{0} clone git://github.com/libgit2/libgit2.git -b v0.16.0".format(ctx.env.GIT), cwd = "vendor", shell = True).wait() != 0:
+      ctx.fatal("Couldn't initialize libgit2 submodule.")
+    if Popen("git checkout v0.16.0", cwd = "vendor/libgit2", shell = True).wait() != 0:
+      ctx.fatal("Couldn't check out compatible version of libgit2")
 
     print "Configuring libgit2..."
 
@@ -78,8 +80,6 @@ def build(ctx):
     build_libgit2(ctx)
 
   obj = ctx.new_task_gen('cxx', 'shlib', 'node_addon')
-  obj.cxxflags = ["--verbose"]
-  
   obj.target = 'gitteh'
   obj.source = 'src/gitteh.cc src/commit.cc src/tree.cc src/repository.cc src/index.cc src/index_entry.cc src/tag.cc src/rev_walker.cc src/ref.cc src/blob.cc' 
   obj.uselib = 'GIT2'
