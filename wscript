@@ -28,21 +28,24 @@ def configure_libgit2(ctx):
     if exists(".git"): 
       if not exists("vendor/libgit2") or not os.listdir("vendor/libgit2"):
         print "Checking out libgit2 submodule."
-        if Popen("{0} submodule update --init".format(ctx.env.GIT), shell = True).wait() != 0:
+        if Popen("mkdir -p vendor", shell = True).wait() != 0:
+          ctx.fatal("Couldn't make vendor directory")
+        if Popen("{0} clone git://github.com/libgit2/libgit2.git -b v0.16.0".format(ctx.env.GIT), cwd = "vendor", shell = True).wait() != 0:
           ctx.fatal("Couldn't initialize libgit2 submodule.")
-    
+        if Popen("git checkout v0.16.0", cwd = "vendor/libgit2", shell = True).wait() != 0:
+          ctx.fatal("Couldn't check out compatible version of libgit2")
+
     print "Configuring libgit2..."
-    command = "./waf configure"
-    
-    if(o.debug):
-      command = command + " --debug"
 
-    if Popen(command, shell = True, cwd = "vendor/libgit2").wait() != 0:
-      ctx.fatal("Libgit2 failed to configure.")
+    # Following compile directions at https://github.com/libgit2/libgit2/blob/development/README.md
+    if Popen("mkdir -p build", cwd = "vendor/libgit2", shell = True).wait() != 0:
+      ctx.fatal("Couldn't make build directory in libgit2")
+    if Popen("cmake ..", cwd = "vendor/libgit2/build", shell = True).wait() != 0:
+      ctx.fatal("Couldn't configure libgit2")
 
-    ctx.env.LIBPATH_GIT2 = abspath("vendor/libgit2/build/shared")
+    ctx.env.LIBPATH_GIT2 = abspath("vendor/libgit2/build/")
     ctx.env.LIB_GIT2 = "git2"
-    ctx.env.RPATH_GIT2 = abspath("vendor/libgit2/build/shared")
+    ctx.env.RPATH_GIT2 = abspath("vendor/libgit2/build/")
     ctx.env.internalLibgit2 = True
 
     ctx.env.append_value("CPPPATH_GIT2", [abspath("vendor/libgit2/include")])
@@ -51,10 +54,7 @@ def configure_libgit2(ctx):
     ctx.env.internalLibgit2 = False
 
 def build_libgit2(bld):
-  if Popen("./waf build", cwd = "vendor/libgit2", shell = True).wait() != 0:
-    # TODO: is there some way of crashing out with an error message from build
-    # context?
-    #bld.fatal("Errors building libgit2.") 
+  if Popen("cmake --build .", cwd = "vendor/libgit2/build", shell = True).wait() != 0:
     pass
 
 def clean_libgit2(bld):
